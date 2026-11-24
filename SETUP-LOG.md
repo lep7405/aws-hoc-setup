@@ -103,3 +103,8 @@ Lỗi gặp khi làm: sơ đồ vẽ bằng ký tự (ASCII) bị lệch hàng v
 
 ## Phần 7: Mục đích của VPC (Claude làm), 24/11/2026
 - Trang "VPC: mạng riêng trên AWS" có thêm mục đầu tiên "Mục đích của VPC": VPC không chạy gì, nó là cái mạng. Bảng 5 mục đích: tách riêng, ai gọi được ai, đường đi, quy hoạch IP, nối với mạng khác. Thêm ghi chú về Flow Logs và cách tách mỗi môi trường một VPC.
+
+## Phần 8: Nhóm "Học kỹ VPC + EC2" (Claude làm), 24/11/2026
+- Thêm 13 trang: "Lộ trình 12 bài" (bảng bài, học được gì, chi phí) và bài 1–12. Mỗi bài có 4 mục: Hiểu trước, Lab, Tự phá, Câu hỏi tự kiểm tra.
+- Các bài có tạo tài nguyên tốn tiền (NAT, ALB, Elastic IP, snapshot) đều ghi rõ bước xoá.
+- Kiểm tra lại cả 34 trang ở cỡ 1440px và 390px: không tràn ngang, không có lỗi JS.
