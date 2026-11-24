@@ -77,3 +77,10 @@ Không cần reload nginx, vì đây là file tĩnh.
 Nếu Terminate EC2 thì mất hết. Dựng lại thì làm lại phần 3, hoặc đưa các lệnh trên vào User data.
 
 Thêm project khác sau này: clone vào `/var/www/sites/<tên>`, tạo `snippets/<tên>.conf`, thêm dòng `include`. Hoặc khi có tên miền thì mỗi project một subdomain, mỗi subdomain một file trong `sites-available`.
+
+## Phần 4: Làm lại giao diện kiểu trang docs (Claude làm), 24/11/2026
+
+- Bố cục 3 cột: menu trái chia nhóm (Tài khoản, Mạng, EC2, Công cụ), nội dung ở giữa, mục lục "Trên trang này" bên phải và tô sáng mục đang đọc. Mỗi bước là một trang riêng, địa chỉ dạng `#id`, có nút Trước/Sau. Trên điện thoại, menu trái thu vào nút ☰.
+- Thêm trang: Route table, Gói tin đi qua những lớp nào (chiều vào / chiều về, Security Group stateful và NACL stateless), Thí nghiệm 3 (xoá route ra Internet), Deploy lên EC2.
+- Bộ mô phỏng thêm bước "Route table (đường về)" ở cuối chuỗi. Xoá route thì request vẫn vào tới nginx nhưng gói trả lời không có đường về, nên ra timeout.
+- Kiểm tra bằng Chrome headless: đi qua cả 18 trang ở cỡ 1440px và 390px, không có lỗi JS và không có trang nào tràn ngang. Lỗi đã sửa: tên trang "ERR_CONNECTION_TIMED_OUT" trong menu trái tràn ra ngoài, xử lý bằng `overflow-wrap: anywhere`.
