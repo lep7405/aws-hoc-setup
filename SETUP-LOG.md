@@ -108,3 +108,7 @@ Lỗi gặp khi làm: sơ đồ vẽ bằng ký tự (ASCII) bị lệch hàng v
 - Thêm 13 trang: "Lộ trình 12 bài" (bảng bài, học được gì, chi phí) và bài 1–12. Mỗi bài có 4 mục: Hiểu trước, Lab, Tự phá, Câu hỏi tự kiểm tra.
 - Các bài có tạo tài nguyên tốn tiền (NAT, ALB, Elastic IP, snapshot) đều ghi rõ bước xoá.
 - Kiểm tra lại cả 34 trang ở cỡ 1440px và 390px: không tràn ngang, không có lỗi JS.
+
+## Phần 9: Giải thích kỹ route table (Claude làm), 24/11/2026
+- Trang "Route table" có thêm 5 mục: Destination/Target là gì; route table chỉ được xét khi gói tin đi ra; ví dụ có số (request vào → trả lời ra → trường hợp thiếu `0.0.0.0/0`); vì sao chiều vào không cần route table (ví với bưu điện, và 3 lớp kiểm tra chiều vào); route table chỉ đường chứ không chặn (bảng so sánh với Security Group/NACL).
+- Bài 1 thêm lưu ý: tạo bằng "VPC only" thì có 0 subnet và DNS hostnames đang tắt (gặp thật khi làm bài).
