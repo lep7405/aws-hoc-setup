@@ -100,3 +100,6 @@ Thêm nhóm "Tổng quan" lên đầu menu trái để có bức tranh chung tr�
 - **Bên trong EC2:** gói tin đi từ card mạng → kernel → nginx (master/worker, khớp location) → file tĩnh hoặc PHP-FPM → log. Kèm lệnh để kiểm tra từng bước, và mẹo khoanh vùng: chạy `curl localhost` trong máy trước để biết lỗi nằm ở mạng hay ở nginx/app.
 
 Lỗi gặp khi làm: sơ đồ vẽ bằng ký tự (ASCII) bị lệch hàng và tràn ra ngoài trên điện thoại. Đã đổi sang sơ đồ dựng bằng HTML/CSS: các tầng Internet, VPC, public subnet, private subnet lồng vào nhau, ô nào đã làm trong bài lab có viền xanh. Kiểm tra 21 trang ở cỡ 1440px và 390px: không tràn ngang, không có lỗi JS.
+
+## Phần 7: Mục đích của VPC (Claude làm), 24/11/2026
+- Trang "VPC: mạng riêng trên AWS" có thêm mục đầu tiên "Mục đích của VPC": VPC không chạy gì, nó là cái mạng. Bảng 5 mục đích: tách riêng, ai gọi được ai, đường đi, quy hoạch IP, nối với mạng khác. Thêm ghi chú về Flow Logs và cách tách mỗi môi trường một VPC.

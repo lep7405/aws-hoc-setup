@@ -128,6 +128,14 @@ const PAGES = [
   { id: 'vpc', group: 'Mạng', title: 'VPC: mạng riêng trên AWS',
     lead: 'Giống mạng wifi ở nhà, nhưng nằm trong data center AWS và thiết bị cắm vào là máy chủ.',
     sections: [
+      { h: 'Mục đích của VPC', html: '<p>VPC <b>không chạy gì cả</b>: không phải server, không xử lý request. Nó là <b>cái mạng</b> để các server, database, load balancer cắm vào. VPC giải quyết 5 việc:</p><div class="tablewrap"><table><thead><tr><th>Mục đích</th><th>Nghĩa là</th><th>Ví dụ</th></tr></thead><tbody>'
+        + '<tr><td><b>1. Tách riêng</b></td><td>Máy của bạn nằm trong mạng riêng, không lẫn với hàng triệu khách khác của AWS</td><td>VPC của công ty khác dùng trùng <code>10.0.0.0/16</code> cũng không thấy nhau</td></tr>'
+        + '<tr><td><b>2. Quyết định ai gọi được ai</b></td><td>Chia tầng public/private, mỗi máy một Security Group</td><td>Chỉ ALB ra Internet; database ở private subnet, chỉ app gọi được</td></tr>'
+        + '<tr><td><b>3. Quyết định đường đi</b></td><td>Route table chỉ đường cho từng subnet: ra Internet, qua NAT, đi tắt tới S3, sang VPC khác</td><td>Private subnet ra ngoài được (qua NAT) nhưng không ai gọi vào được</td></tr>'
+        + '<tr><td><b>4. Quy hoạch địa chỉ IP</b></td><td>Tự chọn dải IP để sau này nối với mạng khác không bị trùng</td><td>Dev <code>10.0.0.0/16</code>, prod <code>10.1.0.0/16</code>, văn phòng <code>192.168.0.0/16</code></td></tr>'
+        + '<tr><td><b>5. Nối với mạng khác</b></td><td>VPN tới văn phòng, nối 2 VPC (peering), Direct Connect (đường cáp riêng)</td><td>Nhân viên ở văn phòng vào được server nội bộ mà không cần mở ra Internet</td></tr>'
+        + '</tbody></table></div><p>Thêm nữa: <b>VPC Flow Logs</b> ghi lại mọi kết nối ra vào, dùng khi điều tra sự cố hay audit. Công ty thường tách <b>mỗi môi trường một VPC</b> (dev, staging, prod), để lỗi ở dev không lan sang prod.</p>'
+        + callout('ok', 'Tóm một câu', 'VPC = bạn tự <b>thiết kế mạng</b> trên AWS: dải IP, khu vực công khai và khu vực kín, ai được nói chuyện với ai, đi đường nào. Không có VPC thì không có chỗ để đặt EC2, RDS, ALB.') },
       { h: 'Làm gì', html: ul(['Đổi region sang <b>Tokyo</b>. Search <code>VPC</code> → <b>Create VPC</b> → <b>VPC and more</b>.', 'Name <code>hoc</code>, IPv4 CIDR <code>10.0.0.0/16</code>, No IPv6, Tenancy Default, <b>2 AZ</b>, 2 public + 2 private subnet, <b>NAT gateways: None</b>, bật cả 2 tuỳ chọn DNS.']) },
       { h: 'Các thành phần', html: ul([
         '<b>VPC</b>: mạng riêng, <b>cách ly hoàn toàn</b> với VPC khác. Chỉ vào được khi chính bạn mở cửa: Internet Gateway, peering, hoặc VPN.',
