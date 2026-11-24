@@ -2,7 +2,87 @@
 const ul = (items) => '<ul>' + items.map((x) => `<li>${x}</li>`).join('') + '</ul>';
 const callout = (kind, title, body) => `<div class="callout ${kind}"><b>${title}</b><div>${body}</div></div>`;
 
+// Chặng của một request trong hệ thống thật. learned: true = đã làm trong bài lab, false = chưa học.
+const HOPS = [
+  { n: 'Trình duyệt', where: 'Máy người dùng', learned: true, what: 'Người dùng gõ <code>https://shop.example.com/cart</code>. Trình duyệt cần biết IP của tên miền này trước.', fail: '' },
+  { n: 'DNS (Route 53 / Cloudflare)', where: 'Internet', learned: false, week: 'Tuần 6 (DNS) · Tuần 13 (Route 53)', what: 'Đổi tên miền thành IP. Hệ thống thật trả về địa chỉ của CDN hoặc load balancer, không phải IP của từng server.', fail: '<code>ERR_NAME_NOT_RESOLVED</code>: sai record hoặc tên miền hết hạn.' },
+  { n: 'CDN (CloudFront / Cloudflare)', where: 'Edge, gần người dùng', learned: false, week: 'Tuần 13', what: 'Giữ bản sao (cache) của ảnh, CSS, JS ở máy chủ gần người dùng. Có sẵn trong cache thì trả luôn, request không đi tiếp vào AWS. Đây cũng là nơi bắt đầu HTTPS (chứng chỉ ACM).', fail: 'Trả bản cũ do cache; lỗi cert (<code>NET::ERR_CERT_…</code>).' },
+  { n: 'WAF', where: 'Trước CDN / ALB', learned: false, week: 'Sau giai đoạn 1', what: 'Firewall cho web: chặn SQL injection, bot, IP xấu, giới hạn số request.', fail: '<code>403</code> do WAF chặn nhầm.' },
+  { n: 'Internet Gateway', where: 'Cửa của VPC', learned: true, week: 'Đã làm', what: 'Request từ Internet đi vào VPC. Đổi public IP thành private IP của ALB hoặc EC2.', fail: 'Route table thiếu <code>0.0.0.0/0 → IGW</code> → timeout (thí nghiệm 3).' },
+  { n: 'ALB (Load Balancer)', where: 'Public subnet, 2 AZ', learned: false, week: 'Tuần 12', what: 'Nhận mọi request, kiểm tra server nào còn sống (health check), rồi chia đều cho các EC2 phía sau. Một server chết thì không gửi request tới nó nữa. Có Security Group riêng mở 80/443 cho Internet.', fail: '<code>502</code> (server phía sau lỗi), <code>503</code> (không còn server nào khoẻ), <code>504</code> (server trả lời quá chậm).' },
+  { n: 'NACL + Security Group của EC2', where: 'Subnet / từng máy', learned: true, week: 'Đã làm', what: 'Hệ thống thật đặt EC2 ở <b>private subnet</b>. Security Group của EC2 chỉ cho phép <b>Security Group của ALB</b> vào cổng 80, nên người ngoài không gọi thẳng vào EC2 được.', fail: 'Thiếu rule → ALB không gọi được EC2 → health check fail → <code>503</code>.' },
+  { n: 'EC2: nginx', where: 'Private subnet', learned: true, week: 'Đã làm', what: 'nginx nghe cổng 80. File tĩnh thì trả luôn; request tới PHP thì chuyển cho PHP-FPM/Laravel (reverse proxy).', fail: 'Không có ai nghe cổng → <code>refused</code> (lỗi 2). App phía sau chết → <code>502</code>.' },
+  { n: 'App (Laravel / PHP-FPM, hoặc container ECS)', where: 'Trong EC2 / ECS', learned: false, week: 'Tuần 19 (capstone)', what: 'Chạy code: đọc session, kiểm tra đăng nhập, lấy giỏ hàng.', fail: '<code>500</code>: lỗi code; xem log app.' },
+  { n: 'ElastiCache (Redis)', where: 'Private subnet', learned: false, week: 'Tuần 14', what: 'Lấy session, cache. Nhanh, đỡ phải gọi database.', fail: 'Timeout khi kết nối: Security Group của Redis chưa cho phép app vào cổng 6379.' },
+  { n: 'RDS (MySQL)', where: 'Private subnet, Multi-AZ', learned: false, week: 'Tuần 14', what: 'Đọc/ghi dữ liệu: giỏ hàng, đơn hàng. Không có public IP; chỉ Security Group của app được vào cổng 3306.', fail: '<code>SQLSTATE[HY000] [2002]</code> timeout: thiếu rule 3306; database quá tải.' },
+  { n: 'S3 (qua VPC endpoint)', where: 'Ngoài VPC, đi đường tắt', learned: false, week: 'Tuần 13', what: 'Lấy/lưu ảnh sản phẩm. Đi qua VPC endpoint (đường tắt miễn phí), không cần ra Internet.', fail: '<code>AccessDenied</code>: IAM role của EC2 thiếu quyền S3.' },
+  { n: 'NAT Gateway (chiều ra)', where: 'Public subnet', learned: false, week: 'Tuần 11', what: 'Khi app cần gọi API bên ngoài (cổng thanh toán, Shopify…), máy ở private subnet đi ra qua NAT. Bên ngoài không gọi ngược vào được.', fail: 'Thiếu NAT hoặc thiếu route → gọi API ngoài bị timeout.' },
+  { n: 'Trả kết quả về', where: 'Đi ngược lại', learned: true, week: 'Đã làm', what: 'App → nginx → ALB → IGW → CDN → trình duyệt. Security Group là stateful nên gói trả lời tự được cho ra; route table phải có đường về.', fail: 'Thiếu đường về → timeout (thí nghiệm 3).' },
+  { n: 'CloudWatch (ghi lại mọi thứ)', where: 'Song song', learned: false, week: 'Tuần 15', what: 'Mọi tầng đều ghi log và số liệu (metric). Vượt ngưỡng thì báo động (alarm), gửi email qua SNS. Đây là công cụ chính của người vận hành.', fail: '' },
+];
+const journeyHtml = () => '<div class="journey">' + HOPS.map((h, i) => `
+  <details class="hop ${h.learned ? 'done' : 'todo'}"${i < 2 ? ' open' : ''}>
+    <summary><span class="hn">${i + 1}</span><span class="ht">${h.n}</span><span class="hw">${h.where}</span><span class="badge">${h.learned ? 'Đã học' : 'Chưa học'}</span></summary>
+    <div class="hb"><p>${h.what}</p>${h.fail ? `<p class="hf"><b>Hỏng thì thấy:</b> ${h.fail}</p>` : ''}${h.week ? `<p class="hk">${h.learned ? '' : 'Học ở: '}${h.week}</p>` : ''}</div>
+  </details>`).join('') + '</div>';
+
+
+const B = (t, sub, learned) => `<div class="box${learned ? ' learned' : ''}"><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+const archHtml = () => `<div class="arch">
+  <div class="zone"><span class="zl">Internet</span>
+    <div class="row">${B('Người dùng', 'gõ shop.example.com', true)}</div>
+    <div class="ar">↓ DNS (Route 53) đổi tên miền → IP của CDN</div>
+    <div class="row">${B('CloudFront (CDN)', 'cache ảnh/CSS, HTTPS')}${B('WAF', 'chặn tấn công web')}</div>
+  </div>
+  <div class="ar">↓</div>
+  <div class="zone vpc"><span class="zl">VPC 10.0.0.0/16</span>
+    <div class="row">${B('Internet Gateway', 'cửa vào/ra VPC', true)}</div>
+    <div class="ar">↓</div>
+    <div class="zone pub"><span class="zl">Public subnet · AZ 1a + 1c</span>
+      <div class="row">${B('ALB', 'chia request cho các EC2')}${B('NAT Gateway', 'cho private subnet đi ra')}</div>
+    </div>
+    <div class="ar">↓ chỉ ALB được gọi vào (Security Group)</div>
+    <div class="zone priv"><span class="zl">Private subnet · AZ 1a + 1c</span>
+      <div class="row">${B('EC2 #1 (1a)', 'nginx + Laravel', true)}${B('EC2 #2 (1c)', 'nginx + Laravel')}</div>
+      <div class="ar">↓</div>
+      <div class="row">${B('ElastiCache Redis', 'session, cache')}${B('RDS MySQL', 'Multi-AZ, không public IP')}</div>
+    </div>
+  </div>
+  <div class="row">${B('S3', 'ảnh, qua VPC endpoint')}${B('CloudWatch', 'log + metric mọi tầng')}</div>
+  <p class="legend"><span class="box learned mini"></span> viền xanh = đã làm trong bài lab</p>
+</div>`;
+
 const PAGES = [
+  // ---------- Tổng quan ----------
+  { id: 'hanh-trinh', group: 'Tổng quan', title: 'Hành trình của một request',
+    lead: 'Từ lúc gõ địa chỉ tới lúc trang hiện ra, một request trong hệ thống thật đi qua khoảng 15 chặng. Bài lab hiện tại mới đi qua 5 chặng. Bấm vào từng chặng để xem nó làm gì và hỏng thì ra lỗi gì.',
+    sections: [
+      { h: 'Sơ đồ hệ thống thật', html: archHtml() },
+      { h: 'Từng chặng', html: journeyHtml() },
+      { h: 'Bài lab hiện tại khác gì', html: '<div class="tablewrap"><table><thead><tr><th></th><th>Bài lab hiện tại</th><th>Hệ thống thật</th></tr></thead><tbody><tr><td>Người dùng vào bằng</td><td>Public IP của EC2</td><td>Tên miền → CDN → ALB</td></tr><tr><td>EC2 nằm ở</td><td>Public subnet, có public IP</td><td><b>Private subnet</b>, không có public IP</td></tr><tr><td>Số server</td><td>1</td><td>≥ 2, ở 2 AZ, sau ALB</td></tr><tr><td>HTTPS</td><td>Chưa có ("Not secure")</td><td>Cert ACM ở CloudFront/ALB</td></tr><tr><td>Database</td><td>Chưa có</td><td>RDS ở private subnet</td></tr><tr><td>Vào server để sửa</td><td>SSH qua public IP</td><td>Session Manager, không mở cổng 22</td></tr></tbody></table></div><p>Bài lab cố ý đơn giản để thấy từng lớp. Các tuần sau sẽ lần lượt chuyển sang mô hình bên phải.</p>' },
+    ] },
+  { id: 'ban-do', group: 'Tổng quan', title: 'Bản đồ kiến thức: đã học và sắp học',
+    lead: 'Biết mình đang ở đâu trên toàn bộ bức tranh.',
+    sections: [
+      { h: 'Theo tầng', html: '<div class="tablewrap"><table><thead><tr><th>Tầng</th><th>Thành phần</th><th>Trạng thái</th></tr></thead><tbody>'
+        + '<tr><td>Tài khoản & quyền</td><td>Root + MFA, IAM user, policy, Billing, Budget, CLI</td><td><span class="pill ok">Đã học</span> · IAM role cho EC2: <span class="pill">Tuần 10</span></td></tr>'
+        + '<tr><td>Mạng</td><td>VPC, subnet, route table, IGW, Security Group, NACL, public/private IP</td><td><span class="pill ok">Đã học</span> · NAT, VPC endpoint, VPN: <span class="pill">Tuần 11 / mạng</span></td></tr>'
+        + '<tr><td>Máy chủ</td><td>EC2, key pair, User data, nginx, SSH, deploy đường dẫn con</td><td><span class="pill ok">Đã học</span> · Session Manager, AMI: <span class="pill">Tuần 12</span></td></tr>'
+        + '<tr><td>Chia tải & mở rộng</td><td>ALB, target group, health check, Auto Scaling</td><td><span class="pill">Tuần 12</span></td></tr>'
+        + '<tr><td>Tên miền & HTTPS</td><td>Route 53, ACM, CloudFront, S3</td><td><span class="pill">Tuần 13</span></td></tr>'
+        + '<tr><td>Dữ liệu</td><td>RDS, backup/restore, Multi-AZ, ElastiCache</td><td><span class="pill">Tuần 14</span></td></tr>'
+        + '<tr><td>Vận hành</td><td>CloudWatch, alarm, log, CloudTrail, 障害対応</td><td><span class="pill">Tuần 15 + 8–9</span></td></tr>'
+        + '<tr><td>Tự động hoá</td><td>Terraform, CI/CD, Docker/ECS</td><td><span class="pill">Tuần 16, 19</span></td></tr>'
+        + '</tbody></table></div>' },
+    ] },
+  { id: 'trong-ec2', group: 'Tổng quan', title: 'Bên trong EC2: request vào máy rồi đi đâu',
+    lead: 'Qua được Security Group, gói tin mới tới hệ điều hành. Từ đây là chuyện của Linux.',
+    sections: [
+      { h: 'Đường đi trong máy', html: '<pre><code>Card mạng (eth0 / ens5, IP 10.0.3.176)\n  ▼  Linux kernel: cổng 80 có chương trình nào nghe không?\n  │     không  → trả RST → trình duyệt báo REFUSED   (lỗi 2)\n  ▼     có     → giao cho nginx\nnginx (master + các worker)\n  │  đọc /etc/nginx/sites-enabled/default + snippets/*.conf\n  │  khớp location nào?\n  ├─ /aws-hoc-setup/  → alias tới /var/www/sites/aws-hoc-setup/ → trả file tĩnh\n  ├─ /                → /var/www/html/index.html\n  └─ (sau này) *.php  → chuyển cho PHP-FPM (Laravel) → MySQL / Redis\n  ▼\nGhi log: /var/log/nginx/access.log (request nào, mã gì)\n         /var/log/nginx/error.log  (lỗi cấu hình, không đọc được file)</code></pre>' },
+      { h: 'Lệnh để soi từng bước', html: '<div class="tablewrap"><table><thead><tr><th>Muốn biết</th><th>Lệnh</th></tr></thead><tbody><tr><td>Máy có IP gì</td><td><code>ip a</code></td></tr><tr><td>Cổng nào đang có chương trình nghe</td><td><code>sudo ss -tlnp</code></td></tr><tr><td>nginx có đang chạy</td><td><code>systemctl status nginx</code></td></tr><tr><td>Cấu hình nginx có lỗi không</td><td><code>sudo nginx -t</code></td></tr><tr><td>Request có vào tới máy không</td><td><code>sudo tail -f /var/log/nginx/access.log</code></td></tr><tr><td>nginx báo lỗi gì</td><td><code>sudo tail /var/log/nginx/error.log</code></td></tr><tr><td>Tự gọi thử từ trong máy</td><td><code>curl -I http://localhost/aws-hoc-setup/</code></td></tr></tbody></table></div>' },
+      { h: 'Mẹo khoanh vùng', html: callout('ok', 'Gọi từ trong máy trước', 'Trong máy chạy <code>curl localhost</code>: nếu <b>được</b> mà từ ngoài không được, lỗi nằm ở <b>mạng</b> (Security Group, route, public IP). Nếu trong máy cũng <b>không được</b>, lỗi nằm ở <b>nginx/app</b>.') },
+    ] },
+
   // ---------- Tài khoản ----------
   { id: 'tai-khoan', group: 'Tài khoản', title: 'Tạo tài khoản, hiểu gói Free plan',
     lead: 'Tài khoản mới ở gói Free: có credit, không bị trừ tiền thẻ.',

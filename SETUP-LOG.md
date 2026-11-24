@@ -91,3 +91,12 @@ Thêm project khác sau này: clone vào `/var/www/sites/<tên>`, tạo `snippet
 - Trạng thái thu gọn được nhớ trên trình duyệt (localStorage). Nếu trình duyệt không cho lưu thì vẫn dùng bình thường, chỉ là không nhớ.
 - Nhóm chứa trang đang xem luôn tự mở, để không bị lạc khi bấm nút Trước/Sau.
 - Đã kiểm tra bằng Chrome headless: thu gọn nhóm Mạng và Công cụ → mở trang Route table thì nhóm Mạng tự mở ra → tải lại trang thì nhóm Công cụ vẫn thu gọn. Không có lỗi JS.
+
+## Phần 6: Nhóm "Tổng quan" (Claude làm), 24/11/2026
+
+Thêm nhóm "Tổng quan" lên đầu menu trái để có bức tranh chung trước khi đọc từng bước:
+- **Hành trình của một request:** sơ đồ hệ thống thật (DNS → CloudFront/WAF → IGW → ALB ở public subnet → EC2 ở private subnet → Redis/RDS, cộng thêm S3, NAT, CloudWatch). Kèm 15 chặng, mỗi chặng mở ra được, ghi rõ chặng đó làm gì, hỏng thì thấy lỗi gì, đã học hay học ở tuần nào. Có thêm bảng so sánh bài lab hiện tại với hệ thống thật.
+- **Bản đồ kiến thức:** các tầng (quyền, mạng, máy chủ, chia tải, tên miền/HTTPS, dữ liệu, vận hành, tự động hoá), mỗi tầng ghi đã học hay sắp học ở tuần nào.
+- **Bên trong EC2:** gói tin đi từ card mạng → kernel → nginx (master/worker, khớp location) → file tĩnh hoặc PHP-FPM → log. Kèm lệnh để kiểm tra từng bước, và mẹo khoanh vùng: chạy `curl localhost` trong máy trước để biết lỗi nằm ở mạng hay ở nginx/app.
+
+Lỗi gặp khi làm: sơ đồ vẽ bằng ký tự (ASCII) bị lệch hàng và tràn ra ngoài trên điện thoại. Đã đổi sang sơ đồ dựng bằng HTML/CSS: các tầng Internet, VPC, public subnet, private subnet lồng vào nhau, ô nào đã làm trong bài lab có viền xanh. Kiểm tra 21 trang ở cỡ 1440px và 390px: không tràn ngang, không có lỗi JS.
