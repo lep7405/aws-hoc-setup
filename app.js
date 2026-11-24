@@ -156,8 +156,24 @@ const PAGES = [
 const slug = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const groups = [...new Set(PAGES.map((p) => p.group))];
 const sidebar = document.getElementById('sidebar');
-sidebar.innerHTML = groups.map((g) => `<h4>${g}</h4>` + PAGES.filter((p) => p.group === g)
-  .map((p) => `<a href="#${p.id}" data-id="${p.id}">${p.bug ? '<span class="dot" title="Có lỗi đã gặp"></span>' : ''}${p.title}</a>`).join('')).join('');
+// Nhóm thu gọn được; nhớ trạng thái trên trình duyệt này (localStorage, lỗi thì bỏ qua).
+let collapsed = {};
+try { collapsed = JSON.parse(localStorage.getItem('nav-collapsed') || '{}'); } catch (_) {}
+const saveCollapsed = () => { try { localStorage.setItem('nav-collapsed', JSON.stringify(collapsed)); } catch (_) {} };
+sidebar.innerHTML = groups.map((g, gi) => {
+  const items = PAGES.filter((p) => p.group === g);
+  return `<div class="group${collapsed[g] ? ' closed' : ''}" data-group="${g}">
+    <button class="ghead" aria-expanded="${!collapsed[g]}" aria-controls="g${gi}"><span class="chev">›</span>${g}<span class="cnt">${items.length}</span></button>
+    <div class="gitems" id="g${gi}">${items.map((p) => `<a href="#${p.id}" data-id="${p.id}">${p.bug ? '<span class="dot" title="Có lỗi đã gặp"></span>' : ''}${p.title}</a>`).join('')}</div>
+  </div>`;
+}).join('');
+sidebar.addEventListener('click', (e) => {
+  const b = e.target.closest('.ghead'); if (!b) return;
+  const box = b.parentElement, g = box.dataset.group;
+  const closed = box.classList.toggle('closed');
+  b.setAttribute('aria-expanded', String(!closed));
+  collapsed[g] = closed; saveCollapsed();
+});
 
 function render() {
   const id = location.hash.slice(1).split('--')[0];
@@ -172,6 +188,9 @@ function render() {
   </div>`;
   document.getElementById('onpage').innerHTML = '<h5>☰ Trên trang này</h5>' + p.sections.map((s) => `<a href="#${p.id}--${slug(s.h)}">${s.h}</a>`).join('');
   sidebar.querySelectorAll('a').forEach((a) => a.classList.toggle('active', a.dataset.id === p.id));
+  // nhóm chứa trang đang xem luôn mở
+  const cur = sidebar.querySelector(`.group[data-group="${p.group}"]`);
+  if (cur && cur.classList.contains('closed')) { cur.classList.remove('closed'); cur.querySelector('.ghead').setAttribute('aria-expanded', 'true'); collapsed[p.group] = false; saveCollapsed(); }
   document.title = p.title + ' · Nhật ký setup AWS';
   if (p.sim) setupSim();
   const sub = location.hash.includes('--') ? document.getElementById(location.hash.slice(1)) : null;

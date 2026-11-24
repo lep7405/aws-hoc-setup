@@ -84,3 +84,10 @@ Thêm project khác sau này: clone vào `/var/www/sites/<tên>`, tạo `snippet
 - Thêm trang: Route table, Gói tin đi qua những lớp nào (chiều vào / chiều về, Security Group stateful và NACL stateless), Thí nghiệm 3 (xoá route ra Internet), Deploy lên EC2.
 - Bộ mô phỏng thêm bước "Route table (đường về)" ở cuối chuỗi. Xoá route thì request vẫn vào tới nginx nhưng gói trả lời không có đường về, nên ra timeout.
 - Kiểm tra bằng Chrome headless: đi qua cả 18 trang ở cỡ 1440px và 390px, không có lỗi JS và không có trang nào tràn ngang. Lỗi đã sửa: tên trang "ERR_CONNECTION_TIMED_OUT" trong menu trái tràn ra ngoài, xử lý bằng `overflow-wrap: anywhere`.
+
+## Phần 5: Thu gọn nhóm trong menu trái (Claude làm), 24/11/2026
+
+- Mỗi nhóm (Tài khoản, Mạng, EC2, Công cụ) có nút đầu nhóm: mũi tên `›` xoay khi mở, bên cạnh có số trang. Bấm vào để thu gọn hoặc mở ra.
+- Trạng thái thu gọn được nhớ trên trình duyệt (localStorage). Nếu trình duyệt không cho lưu thì vẫn dùng bình thường, chỉ là không nhớ.
+- Nhóm chứa trang đang xem luôn tự mở, để không bị lạc khi bấm nút Trước/Sau.
+- Đã kiểm tra bằng Chrome headless: thu gọn nhóm Mạng và Công cụ → mở trang Route table thì nhóm Mạng tự mở ra → tải lại trang thì nhóm Công cụ vẫn thu gọn. Không có lỗi JS.

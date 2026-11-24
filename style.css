@@ -34,8 +34,14 @@ button { font: inherit; }
 
 .layout { display: grid; grid-template-columns: 270px minmax(0, 1fr) 230px; max-width: 1400px; margin: 0 auto; }
 .sidebar { position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto; padding: 22px 14px 40px 22px; border-right: 1px solid var(--line); }
-.sidebar h4 { margin: 18px 10px 6px; font-size: 12.5px; font-weight: 600; color: var(--fg); letter-spacing: .01em; }
-.sidebar h4:first-child { margin-top: 0; }
+.group + .group { margin-top: 10px; }
+.ghead { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; color: var(--fg); font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 8px; cursor: pointer; text-align: left; }
+.ghead:hover { background: var(--panel); }
+.ghead .chev { display: inline-block; color: var(--muted); transform: rotate(90deg); transition: transform .15s; width: 10px; }
+.ghead .cnt { margin-left: auto; font-size: 11.5px; color: var(--dim); font-family: var(--mono); font-weight: 400; }
+.group.closed .chev { transform: none; }
+.group.closed .gitems { display: none; }
+.gitems { display: grid; gap: 1px; padding-left: 8px; margin-left: 14px; border-left: 1px solid var(--line); }
 .sidebar a { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--muted); font-size: 14.5px; padding: 6px 10px; border-radius: 8px; }
 .sidebar a { overflow-wrap: anywhere; min-width: 0; }
 .sidebar a:hover { color: var(--fg); background: var(--panel); }
