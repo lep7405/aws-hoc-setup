@@ -28,3 +28,52 @@
 - Nội dung từng bước: sửa mảng `STEPS` trong `app.js`.
 - Bảng đọc lỗi: sửa trong `index.html`, phần `#doc-loi`.
 - Sửa xong thì commit và push lên `main`. GitHub Pages tự cập nhật sau khoảng 1 phút.
+
+## Phần 3: Deploy lên EC2 (Claude làm qua SSH), 24/11/2026
+
+Cấu trúc thư mục trên EC2 `hoc-web-1` (Ubuntu 24.04, nginx):
+```
+/var/www/html/                 # trang gốc "/" (để dành cho project chính sau này)
+/var/www/sites/aws-hoc-setup/  # project này (git clone), phục vụ ở /aws-hoc-setup/
+/etc/nginx/snippets/aws-hoc-setup.conf   # cấu hình riêng của project này
+```
+
+Các lệnh đã chạy:
+```bash
+ssh -i ~/.ssh/hoc-key.pem ubuntu@<public-ip>
+sudo mkdir -p /var/www/sites && sudo chown ubuntu:ubuntu /var/www/sites
+cd /var/www/sites && git clone https://github.com/lep7405/aws-hoc-setup.git
+```
+
+File `/etc/nginx/snippets/aws-hoc-setup.conf`:
+```nginx
+location = /aws-hoc-setup { return 301 /aws-hoc-setup/; }   # thiếu dấu / thì chuyển hướng
+location /aws-hoc-setup/ {
+    alias /var/www/sites/aws-hoc-setup/;   # URL /aws-hoc-setup/x → file /var/www/sites/aws-hoc-setup/x
+    index index.html;
+    location ~ /\.git { deny all; }      # không cho tải thư mục .git (lộ lịch sử code)
+}
+```
+Gắn snippet vào site mặc định: trong `/etc/nginx/sites-available/default`, ngay sau dòng `server_name _;`, thêm dòng `include snippets/aws-hoc-setup.conf;`. Sau đó chạy:
+```bash
+sudo nginx -t                # kiểm tra cú pháp trước, sai thì không reload
+sudo systemctl reload nginx  # reload: không làm rớt kết nối đang có, khác với restart
+```
+
+Kiểm tra từ ngoài:
+| URL | Kết quả |
+|---|---|
+| `/` | 200 (trang nginx mặc định) |
+| `/aws-hoc-setup` | 301 → `/aws-hoc-setup/` |
+| `/aws-hoc-setup/` | 200, đúng trang này |
+| `/aws-hoc-setup/.git/config` | 403 (đã chặn) |
+
+Cập nhật trang sau này: push lên GitHub, rồi trên EC2 chạy:
+```bash
+git -C /var/www/sites/aws-hoc-setup pull
+```
+Không cần reload nginx, vì đây là file tĩnh.
+
+Nếu Terminate EC2 thì mất hết. Dựng lại thì làm lại phần 3, hoặc đưa các lệnh trên vào User data.
+
+Thêm project khác sau này: clone vào `/var/www/sites/<tên>`, tạo `snippets/<tên>.conf`, thêm dòng `include`. Hoặc khi có tên miền thì mỗi project một subdomain, mỗi subdomain một file trong `sites-available`.
