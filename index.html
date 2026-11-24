@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nhật ký setup AWS</title>
+<meta name="description" content="Từng bước setup tài khoản AWS, VPC, EC2 + nginx, kèm các lỗi đã gặp và cách đọc lỗi timeout / refused.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+JP:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <p class="eyebrow">Tài khoản học · region Tokyo (ap-northeast-1) · 24/11/2026</p>
+    <h1>Nhật ký setup AWS: từ tài khoản mới tới web chạy trên EC2</h1>
+    <p class="lead">Mỗi bước ghi rõ: làm gì, vì sao phải làm, và chỗ đã làm sai. Phần quan trọng nhất là <a href="#mo-phong">bộ mô phỏng gói tin</a>: tắt từng điều kiện để thấy request dừng ở đâu và trình duyệt báo lỗi gì.</p>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Mục lục">
+  <div class="wrap" id="toc"></div>
+</nav>
+
+<main class="wrap" id="steps"></main>
+
+<section class="wrap block" id="mo-phong">
+  <h2>Mô phỏng: request đi từ trình duyệt tới nginx</h2>
+  <p class="muted">Muốn mở được <code>http://&lt;public-ip&gt;</code> thì cả 4 điều kiện dưới đây phải đúng. Bỏ tick một ô để xem request dừng ở đâu, và trình duyệt sẽ hiện lỗi gì.</p>
+  <div class="sim">
+    <div class="toggles" id="toggles"></div>
+    <div class="path" id="path" aria-live="polite"></div>
+    <div class="result" id="result"></div>
+  </div>
+</section>
+
+<section class="wrap block" id="doc-loi">
+  <h2>Bảng đọc lỗi: nhìn thông báo, đoán ra tầng bị hỏng</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Trình duyệt / curl báo</th><th>Chuyện gì xảy ra</th><th>Thường do</th><th>Kiểm tra bằng</th></tr></thead>
+      <tbody>
+        <tr><td><code>ERR_CONNECTION_TIMED_OUT</code><br><small>curl: <code>Connection timed out</code></small></td><td>Gửi đi mà <b>không ai trả lời</b>. Gói tin bị bỏ lặng lẽ trên đường.</td><td>Security Group thiếu rule, route table không có đường ra IGW, NACL chặn, IP nhà đổi (rule "My IP" cũ)</td><td>Security Group → Inbound rules; Route tables → Routes</td></tr>
+        <tr><td><code>ERR_CONNECTION_REFUSED</code><br><small>curl: <code>Connection refused</code></small></td><td>Gói tin <b>tới được máy</b>, máy trả lời ngay: "cổng này không có ai nghe".</td><td>Dịch vụ (nginx) chưa cài, bị tắt, hoặc đang nghe cổng khác</td><td><code>sudo ss -tlnp</code>, <code>systemctl status nginx</code></td></tr>
+        <tr><td><code>502 Bad Gateway</code></td><td>Web server (nginx/ALB) chạy, nhưng <b>app phía sau</b> chết hoặc lỗi.</td><td>PHP-FPM / container app không chạy</td><td>Log nginx, <code>docker ps</code>, log app</td></tr>
+        <tr><td><code>ERR_NAME_NOT_RESOLVED</code></td><td>Không đổi được <b>tên miền thành IP</b>.</td><td>Sai DNS record, gõ sai tên</td><td><code>dig ten-mien</code></td></tr>
+        <tr><td>SSH: <code>Permission denied (publickey)</code></td><td>Tới được máy, nhưng <b>sai key hoặc sai user</b>.</td><td>Ubuntu dùng user <code>ubuntu</code>, Amazon Linux dùng <code>ec2-user</code></td><td><code>ssh -i key ubuntu@ip</code></td></tr>
+        <tr><td>SSH: <code>UNPROTECTED PRIVATE KEY FILE</code></td><td>File key để quyền quá rộng nên SSH từ chối dùng.</td><td>Lưu key từ Windows (quyền 644)</td><td><code>chmod 400 ~/.ssh/hoc-key.pem</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">Quy tắc nhanh: <b>timeout = bị chặn ở mạng</b> (firewall, route); <b>refused = tới máy rồi nhưng dịch vụ không chạy</b>. Đọc đúng loại lỗi là đã khoanh vùng được một nửa sự cố. Đây là kỹ năng 障害対応 (shougai taiou, xử lý sự cố).</p>
+</section>
+
+<footer class="wrap foot">
+  <p>Số tài khoản, IP nhà và ID tài nguyên đã được che. Ghi chép quá trình tạo trang này ở <a href="SETUP-LOG.md">SETUP-LOG.md</a>.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
