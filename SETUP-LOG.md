@@ -112,3 +112,6 @@ Lỗi gặp khi làm: sơ đồ vẽ bằng ký tự (ASCII) bị lệch hàng v
 ## Phần 9: Giải thích kỹ route table (Claude làm), 24/11/2026
 - Trang "Route table" có thêm 5 mục: Destination/Target là gì; route table chỉ được xét khi gói tin đi ra; ví dụ có số (request vào → trả lời ra → trường hợp thiếu `0.0.0.0/0`); vì sao chiều vào không cần route table (ví với bưu điện, và 3 lớp kiểm tra chiều vào); route table chỉ đường chứ không chặn (bảng so sánh với Security Group/NACL).
 - Bài 1 thêm lưu ý: tạo bằng "VPC only" thì có 0 subnet và DNS hostnames đang tắt (gặp thật khi làm bài).
+
+## Phần 10: Lối local và lối igw (Claude làm), 25/11/2026
+- Trang "Route table" thêm 2 mục: "Lối local khác lối igw thế nào" (bảng so sánh, ví von chung cư, dòng 0.0.0.0/0 quyết định subnet public/private) và "Mạng nội bộ (local) để làm gì" (an toàn, nhanh nhưng vẫn có latency, rẻ, IP ổn định).
