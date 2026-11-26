@@ -1,8 +1,7 @@
-# Nhật ký setup AWS
+# Nhật ký setup AWS (đã chuyển)
 
-Trang ghi lại từng bước setup tài khoản AWS → VPC → EC2 + nginx: làm gì, vì sao, và các lỗi đã gặp (Access denied, `ERR_CONNECTION_TIMED_OUT`, `ERR_CONNECTION_REFUSED`). Có bộ mô phỏng: tắt từng điều kiện để xem request dừng ở đâu.
+> **Repo này đã archive (26/11/2026).** Nội dung chuyển sang repo **[lep7405/hoc-ha-tang](https://github.com/lep7405/hoc-ha-tang)**, thư mục `site/aws/`, cùng trang học Cloudflare.
+>
+> Xem: https://bai.phuoc-review-app-1.uk/hoc/aws/
 
-- Xem trang: https://lep7405.github.io/aws-hoc-setup/
-- Quá trình làm: [SETUP-LOG.md](SETUP-LOG.md)
-
-Trang tĩnh, không cần build. Mở `index.html` trực tiếp trong trình duyệt cũng được.
+Bản cuối ở đây là commit `14bbd09`. Mọi sửa đổi từ nay làm ở repo mới.
